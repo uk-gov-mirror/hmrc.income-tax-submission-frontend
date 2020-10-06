@@ -18,20 +18,23 @@ package controllers
 
 import config.FrontendAppConfig
 import javax.inject.{Inject, Singleton}
+import play.api.i18n.I18nSupport
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendController
 import views.html.OverviewPageView
+
 import scala.concurrent.Future
 
 @Singleton
 class OverviewPageController @Inject()(
                                       appConfig: FrontendAppConfig,
                                       mcc: MessagesControllerComponents,
-                                      overviewPageView: OverviewPageView) extends FrontendController(mcc) {
+                                      authorisedController: AuthorisedController,
+                                      overviewPageView: OverviewPageView) extends FrontendController(mcc) with I18nSupport {
 
   implicit val config: FrontendAppConfig = appConfig
 
-  def individual: Action[AnyContent] = Action.async{ implicit request =>
+  def individual: Action[AnyContent] = authorisedController.authorisedAction { implicit request =>
     Future.successful(Ok(overviewPageView(isAgent = false)))
   }
 

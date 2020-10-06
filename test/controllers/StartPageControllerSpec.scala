@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.codahale.metrics.SharedMetricRegistries
 import config.FrontendAppConfig
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -29,7 +30,7 @@ import uk.gov.hmrc.play.bootstrap.tools.Stubs.stubMessagesControllerComponents
 import views.html.StartPage
 
 class StartPageControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite {
-
+  SharedMetricRegistries.clear()
   private val fakeRequest = FakeRequest("GET", "/")
   private val env = Environment.simple()
   private val configuration = Configuration.load(env)

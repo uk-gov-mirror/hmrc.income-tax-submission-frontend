@@ -16,6 +16,7 @@
 
 package controllers
 
+import com.codahale.metrics.SharedMetricRegistries
 import config.FrontendAppConfig
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,6 +31,7 @@ import views.html.OverviewPageView
 
 class OverviewPageControllerSpec extends AnyWordSpec with Matchers with GuiceOneAppPerSuite {
 
+  SharedMetricRegistries.clear()
   private val fakeRequest = FakeRequest("GET", "/")
   private val env = Environment.simple()
   private val configuration = Configuration.load(env)
@@ -38,8 +40,8 @@ class OverviewPageControllerSpec extends AnyWordSpec with Matchers with GuiceOne
   private val mockAppConfig = new FrontendAppConfig(configuration, serviceConfig)
   private val overviewPageView: OverviewPageView = app.injector.instanceOf[OverviewPageView]
 
-  private val controller = new OverviewPageController(mockAppConfig, stubMessagesControllerComponents(), overviewPageView)
-
+  private val authorisedController: AuthorisedController = app.injector.instanceOf[AuthorisedController]
+  private val controller = new OverviewPageController(mockAppConfig, stubMessagesControllerComponents(), authorisedController, overviewPageView)
   "calling the individual action" when {
 
     "the user is an individual" should {
