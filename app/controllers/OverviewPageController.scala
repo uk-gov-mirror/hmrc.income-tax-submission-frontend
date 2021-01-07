@@ -46,7 +46,7 @@ class OverviewPageController @Inject()(
       case Some(nino) =>
         incomeSourcesService.getIncomeSources(nino, taxYear, user.mtditid).map{
           case Right(incomeSources) => {
-            var result = Ok(overviewPageView(isAgent = user.isAgent, Some(incomeSources), taxYear))
+            var result = Ok(overviewPageView(isAgent = user.isAgent, Some(incomeSources), taxYear)).removingFromSession(PAGE_BACK_CYA)
 
             if (incomeSources.dividends.isDefined){
               result = result.addingToSession(DIVIDENDS_PRIOR_SUB -> Json.toJson(incomeSources.dividends).toString())
