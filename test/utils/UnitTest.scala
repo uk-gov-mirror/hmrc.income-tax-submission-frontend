@@ -111,4 +111,7 @@ trait UnitTest extends AnyWordSpec with Matchers with MockFactory with BeforeAnd
       .returning(Future.failed(exception))
   }
 
+  def redirectUrl(awaitable: Future[Result]): String = {
+    await(awaitable).header.headers.getOrElse("Location", "/")
+  }
 }

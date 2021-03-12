@@ -19,12 +19,10 @@ package controllers
 import common.SessionValues._
 import config.{AppConfig, ErrorHandler}
 import connectors.httpparsers.CalculationIdHttpParser.CalculationIdErrorServiceUnavailableError
-import controllers.predicates.AuthorisedAction
-
+import controllers.predicates.{AuthorisedAction, TaxYearFilter}
 import javax.inject.{Inject, Singleton}
 import play.api.i18n.I18nSupport
 import play.api.libs.json.Json
-import play.api.mvc.Results.{InternalServerError, ServiceUnavailable}
 import play.api.mvc._
 import services.{CalculationIdService, IncomeSourcesService}
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendController
@@ -44,28 +42,31 @@ class OverviewPageController @Inject()(
                                         authorisedAction: AuthorisedAction,
                                         internalServerErrorPage: InternalServerErrorPage,
                                         serviceUnavailablePage: ServiceUnavailablePage,
-                                        errorHandler: ErrorHandler) extends FrontendController(mcc) with I18nSupport {
+                                        errorHandler: ErrorHandler) extends FrontendController(mcc) with I18nSupport with TaxYearFilter {
 
   implicit val config: AppConfig = appConfig
 
   def show(taxYear: Int): Action[AnyContent] = authorisedAction.async { implicit user =>
-    incomeSourcesService.getIncomeSources(user.nino, taxYear, user.mtditid).map {
-      case Right(incomeSources) => {
-        val result = Ok(overviewPageView(isAgent = user.isAgent, Some(incomeSources), taxYear))
 
-        val sessionWithDividends = incomeSources.dividends.fold(result) { _ =>
-          result.addingToSession(DIVIDENDS_PRIOR_SUB -> Json.toJson(incomeSources.dividends).toString())
-        }
-        val sessionWithInterest = incomeSources.interest.fold(sessionWithDividends) { _ =>
-          sessionWithDividends.addingToSession(INTEREST_PRIOR_SUB -> Json.toJson(incomeSources.interest).toString())
-        }
+    taxYearFilterFuture(taxYear) {
 
-        sessionWithInterest
+      incomeSourcesService.getIncomeSources(user.nino, taxYear, user.mtditid).map {
+        case Right(incomeSources) => {
+          val result = Ok(overviewPageView(isAgent = user.isAgent, Some(incomeSources), taxYear))
+
+          val sessionWithDividends = incomeSources.dividends.fold(result) { _ =>
+            result.addingToSession(DIVIDENDS_PRIOR_SUB -> Json.toJson(incomeSources.dividends).toString())
+          }
+          val sessionWithInterest = incomeSources.interest.fold(sessionWithDividends) { _ =>
+            sessionWithDividends.addingToSession(INTEREST_PRIOR_SUB -> Json.toJson(incomeSources.interest).toString())
+          }
+
+          sessionWithInterest
+        }
+        case Left(error) => errorHandler.handleError(error)
       }
-      case Left(error) => errorHandler.handleError(error)
     }
   }
-
   def getCalculation(taxYear: Int): Action[AnyContent] = authorisedAction.async { implicit user =>
     calculationIdService.getCalculationId(user.nino, taxYear, user.mtditid).map {
       case Right(calculationId) =>
@@ -74,7 +75,8 @@ class OverviewPageController @Inject()(
       case Left(_) => InternalServerError(internalServerErrorPage())
     }
 
+    taxYearFilterFuture(taxYear) {
+      Future.successful(Redirect(appConfig.viewAndChangeCalculationUrl(taxYear)).addingToSession(CALCULATION_ID -> ""))
+    }
   }
-
-
 }

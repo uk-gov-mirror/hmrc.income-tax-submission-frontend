@@ -17,11 +17,12 @@
 package controllers
 
 import config.AppConfig
-import controllers.predicates.AuthorisedAction
+import controllers.predicates.{AuthorisedAction, TaxYearFilter}
 import javax.inject.{Inject, Singleton}
 import play.api.i18n.I18nSupport
 import play.api.mvc._
 import uk.gov.hmrc.play.bootstrap.frontend.controller.FrontendController
+import utils.SessionDataHelper
 import views.html.StartPage
 
 import scala.concurrent.Future
@@ -31,10 +32,12 @@ import scala.concurrent.Future
 class StartPageController @Inject()(val authorisedAction: AuthorisedAction,
                                     val startPageView: StartPage,
                                     implicit val appConfig: AppConfig,
-                                    val mcc: MessagesControllerComponents) extends FrontendController(mcc) with I18nSupport {
+                                    val mcc: MessagesControllerComponents)
+                                    extends FrontendController(mcc) with I18nSupport with SessionDataHelper with TaxYearFilter {
 
   def show(taxYear: Int): Action[AnyContent] = authorisedAction.async { implicit user =>
-    Future.successful(Ok(startPageView(isAgent = user.isAgent, taxYear)))
+    taxYearFilterFuture(taxYear) {
+      Future.successful(Ok(startPageView(isAgent = user.isAgent, appConfig.defaultTaxYear)))
+    }
   }
-
 }

@@ -60,7 +60,7 @@ class OverviewPageControllerSpec extends UnitTest with GuiceOneAppPerSuite {
   private val mockCalculationIdService = mock[CalculationIdService]
 
   private val nino = Some("AA123456A")
-  private val taxYear = 2020
+  private val taxYear = 2022
 
   def mockGetIncomeSourcesValid(): CallHandler4[String, Int, String, HeaderCarrier, Future[IncomeSourcesResponse]] = {
     val validIncomeSource: IncomeSourcesResponse = Right(IncomeSourcesModel(
@@ -358,6 +358,16 @@ class OverviewPageControllerSpec extends UnitTest with GuiceOneAppPerSuite {
         status(result) shouldBe Status.INTERNAL_SERVER_ERROR
       }
 
+    }
+  }
+  "the user enters an invalid tax year into the url" should {
+    "redirect to the error tax page" in {
+      val invalidTaxYear = 2023
+      val result = {
+        mockAuth(nino)
+        controller.show(invalidTaxYear)(fakeGetRequest)
+      }
+      redirectUrl(result) shouldBe controllers.routes.TaxYearErrorController.show().url
     }
   }
 }
