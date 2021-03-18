@@ -16,15 +16,21 @@
 
 package controllers
 
+import audit.{AuditModel, IVFailureAuditDetail, IVSuccessAuditDetail}
 import config.MockAuditService
 import controllers.Assets.SEE_OTHER
+import org.scalamock.handlers.CallHandler
 import play.api.test.DefaultAwaitTimeout
 import play.api.test.Helpers.stubMessagesControllerComponents
+import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import utils.UnitTest
+
+import scala.concurrent.Future
 
 class IVUpliftControllerSpec extends UnitTest with DefaultAwaitTimeout with MockAuditService{
 
-  val controller = new IVUpliftController()(mockAppConfig,stubMessagesControllerComponents,mockAuditService, scala.concurrent.ExecutionContext.Implicits.global)
+  val controller = new IVUpliftController()(
+    mockAppConfig,stubMessagesControllerComponents,mockAuditService,authorisedAction, scala.concurrent.ExecutionContext.Implicits.global)
 
   "IVUpliftController" should {
 
@@ -48,7 +54,17 @@ class IVUpliftControllerSpec extends UnitTest with DefaultAwaitTimeout with Mock
 
       "callback() is called it" should {
 
+        def event(nino: String): AuditModel[IVSuccessAuditDetail] =
+        AuditModel("LowConfidenceLevelIvOutcomeSuccess", "LowConfidenceLevelIvOutcomeSuccess", IVSuccessAuditDetail(nino))
+
+        def verifyAudit(nino:String): CallHandler[Future[AuditResult]] = verifyAuditEvent(event(nino))
+
+        mockAuth(Some("AA12324AA"))
+        verifyAudit("AA12324AA")
         val response = controller.callback()(fakeRequest)
+
+        mockAuth(Some("AA12324AA"))
+        verifyAudit("AA12324AA")
         val response2 = controller.callback()(fakeRequest.withSession("TAX_YEAR" -> "2022"))
 
         "return status code 303" in {

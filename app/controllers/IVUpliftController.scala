@@ -16,10 +16,11 @@
 
 package controllers
 
-import audit.{AuditModel, AuditService, IVHandoffAuditDetail}
+import audit.{AuditModel, AuditService, IVHandoffAuditDetail, IVSuccessAuditDetail}
 import uk.gov.hmrc.play.audit.http.connector.AuditResult
 import common.SessionValues
 import config.AppConfig
+import controllers.predicates.AuthorisedAction
 import javax.inject.{Inject, Singleton}
 import play.api.i18n.I18nSupport
 import play.api.mvc._
@@ -34,6 +35,7 @@ import scala.concurrent.{ExecutionContext, Future}
 class IVUpliftController @Inject()(implicit appConfig: AppConfig,
                                    mcc: MessagesControllerComponents,
                                    auditService: AuditService,
+                                   val authorisedAction: AuthorisedAction,
                                    implicit val ec: ExecutionContext) extends FrontendController(mcc) with I18nSupport with SessionDataHelper{
 
   def initialiseJourney: Action[AnyContent] = Action { implicit request =>
@@ -44,12 +46,20 @@ class IVUpliftController @Inject()(implicit appConfig: AppConfig,
     Redirect(appConfig.ivUpliftUrl)
   }
 
-  def callback: Action[AnyContent] = Action { implicit request =>
-    //TODO Implement success audit event
+  def callback: Action[AnyContent] = authorisedAction { implicit user =>
+
+    val model = IVSuccessAuditDetail(user.nino)
+    ivSuccessAuditSubmission(model)
+
     getSessionData[Int](SessionValues.TAX_YEAR) match {
       case Some(taxYear) => Redirect(routes.StartPageController.show(taxYear))
       case None => Redirect(routes.StartPageController.show(appConfig.defaultTaxYear))
     }
+  }
+
+  private def ivSuccessAuditSubmission(details: IVSuccessAuditDetail)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[AuditResult] = {
+    val event = AuditModel("LowConfidenceLevelIvOutcomeSuccess", "LowConfidenceLevelIvOutcomeSuccess", details)
+    auditService.auditModel(event)
   }
 
   private def ivHandoffAuditSubmission(details: IVHandoffAuditDetail)(implicit hc: HeaderCarrier, ec: ExecutionContext): Future[AuditResult] = {
