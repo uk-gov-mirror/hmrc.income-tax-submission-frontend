@@ -92,6 +92,13 @@ trait UnitTest extends AnyWordSpec with Matchers with MockFactory with BeforeAnd
   }
 
   //noinspection ScalaStyle
+  def mockAuthNoRetrievals() = {
+    (mockAuthConnector.authorise(_: Predicate, _: Retrieval[_])(_: HeaderCarrier, _: ExecutionContext))
+      .expects(*, *, *, *)
+      .returning(Future.successful())
+  }
+
+  //noinspection ScalaStyle
   def mockIVCredentials(affinityGroup: AffinityGroup, confidenceLevel: Int) = {
     val confidenceLevelResponse = confidenceLevel match {
       case 500 => ConfidenceLevel.L500

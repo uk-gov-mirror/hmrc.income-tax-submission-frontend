@@ -39,25 +39,28 @@ class IVUpliftController @Inject()(implicit appConfig: AppConfig,
                                    auditService: AuditService,
                                    implicit val authService: AuthService,
                                    val authorisedAction: AuthorisedAction,
-                                   implicit val ec: ExecutionContext) extends FrontendController(mcc) with I18nSupport with SessionDataHelper{
+                                   implicit val ec: ExecutionContext) extends FrontendController(mcc) with I18nSupport with SessionDataHelper {
 
-  val minimumConfidenceLevel :Int = ConfidenceLevel.L200.level
-
-  def sessionConfidenceLevel(implicit headerCarrier: HeaderCarrier): Future[(String, Int)] = {
-    authService.authorised().retrieve(affinityGroup and confidenceLevel){
-      case Some(affinityGroup) ~ confidenceLevel => Future.successful(affinityGroup.toString, confidenceLevel.level)
-    }
-  }
+  val minimumConfidenceLevel: Int = ConfidenceLevel.L200.level
 
   def initialiseJourney: Action[AnyContent] = Action.async { implicit request =>
-    sessionConfidenceLevel.map { response =>
 
-      val handoffReason = response._1
-      val confidenceLevel = response._2
+    authService.authorised()(
+      sessionConfidenceLevel.map { response =>
 
-      val model = IVHandoffAuditDetail(handoffReason.toLowerCase(), confidenceLevel , minimumConfidenceLevel)
-      auditService.sendAudit(model.toAuditModel)
-      Redirect(appConfig.ivUpliftUrl)
+        val handoffReason = response._1
+        val confidenceLevel = response._2
+
+        val model = IVHandoffAuditDetail(handoffReason.toLowerCase(), confidenceLevel, minimumConfidenceLevel)
+        auditService.sendAudit(model.toAuditModel)
+        Redirect(appConfig.ivUpliftUrl)
+      }
+    )
+  }
+
+  def sessionConfidenceLevel(implicit headerCarrier: HeaderCarrier): Future[(String, Int)] = {
+    authService.authorised().retrieve(affinityGroup and confidenceLevel) {
+      case Some(affinityGroup) ~ confidenceLevel => Future.successful(affinityGroup.toString, confidenceLevel.level)
     }
   }
 

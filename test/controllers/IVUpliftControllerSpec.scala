@@ -66,6 +66,7 @@ class IVUpliftControllerSpec extends UnitTest with DefaultAwaitTimeout with Mock
         "as an individual return status code 303" in {
           lazy val response = controller.initialiseJourney()(fakeRequest)
 
+          mockAuthNoRetrievals
           mockIVCredentials(AffinityGroup.Individual, individualConfidenceLevel)
           verifyIndividualHandoffAudit
           status(response) shouldBe SEE_OTHER
@@ -76,6 +77,7 @@ class IVUpliftControllerSpec extends UnitTest with DefaultAwaitTimeout with Mock
         "as an organisation return status code 303" in {
           lazy val response = controller.initialiseJourney()(fakeRequest)
 
+          mockAuthNoRetrievals
           mockIVCredentials(AffinityGroup.Organisation, organisationConfidenceLevel)
           verifyOrganisationHandoffAudit
           status(response) shouldBe SEE_OTHER
